@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            db.execSQL("CREATE TABLE if not exists scrapTable (id integer PRIMARY KEY AUTOINCREMENT, newsTitle CHAR(50), newsLink CHAR(200),scrapTitle CHAR(20), scrapBody CHAR(500),scrapDate CHAR(20))");
+            db.execSQL("CREATE TABLE if not exists scrapTable (id integer PRIMARY KEY AUTOINCREMENT, newsTitle text, newsLink text,scrapTitle text, scrapBody text,scrapDate text)");
         }
 
         @Override
@@ -162,32 +162,37 @@ public class MainActivity extends AppCompatActivity {
                                 if (response.isSuccessful()) {
                                     GetData getData = response.body();
                                     if (getData != null) {
-                                        for (int i = 0; i < getData.getItem().size(); i++) {
-                                            String title = getData.getItem().get(i).getTitle();
-                                            String link = getData.getItem().get(i).getLink();
-                                            String description = getData.getItem().get(i).getDescription();
-                                            String pubDate = getData.getItem().get(i).getPubDate();
-                                            newsAdapter.addItem(new NewsData(title, link, description, pubDate));
-                                        }
-                                        searchRecyclerView.setAdapter(newsAdapter);
-                                        newsAdapter.setOnItemClickListener(new OnNewsItemClickListener() {
-                                            @Override
-                                            public void onItemClick(NewsAdapter.ViewHolder holder, View view, int position) {
-                                                NewsData newsData = newsAdapter.getItem(position);
-                                                Intent intent = new Intent(getApplicationContext(), NewsView.class);
-                                                intent.putExtra("title", newsData.getTitle());
-                                                intent.putExtra("link", newsData.getLink());
-                                                intent.putExtra("description", newsData.getDescription());
-                                                intent.putExtra("pubDate", newsData.getPubDate());
-                                                startActivity(intent);
+                                        if (getData.getItem().size() != 0) {
+                                            for (int i = 0; i < getData.getItem().size(); i++) {
+                                                String title = getData.getItem().get(i).getTitle();
+                                                String link = getData.getItem().get(i).getLink();
+                                                String description = getData.getItem().get(i).getDescription();
+                                                String pubDate = getData.getItem().get(i).getPubDate();
+                                                newsAdapter.addItem(new NewsData(title, link, description, pubDate));
                                             }
-                                        });
+                                            searchRecyclerView.setAdapter(newsAdapter);
+                                            newsAdapter.setOnItemClickListener(new OnNewsItemClickListener() {
+                                                @Override
+                                                public void onItemClick(NewsAdapter.ViewHolder holder, View view, int position) {
+                                                    NewsData newsData = newsAdapter.getItem(position);
+                                                    Intent intent = new Intent(getApplicationContext(), NewsView.class);
+                                                    intent.putExtra("title", newsData.getTitle());
+                                                    intent.putExtra("link", newsData.getLink());
+                                                    intent.putExtra("description", newsData.getDescription());
+                                                    intent.putExtra("pubDate", newsData.getPubDate());
+                                                    startActivity(intent);
+                                                }
+                                            });
+                                        }else{
+                                            Toast.makeText(getApplicationContext(),"찾는 뉴스가 없습니다.",Toast.LENGTH_SHORT).show();
+                                            newsAdapter.clear();
+                                            searchRecyclerView.setAdapter(newsAdapter);
+                                        }
                                     }
                                 }
                             }
                             @Override
                             public void onFailure(@NonNull Call<GetData> call, @NonNull Throwable t) {
-                                call.cancel();
                                 Toast.makeText(getApplicationContext(),"통신에 실패했습니다.",Toast.LENGTH_SHORT).show();
                             }
                         });

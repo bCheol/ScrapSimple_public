@@ -17,7 +17,7 @@ public class NewsData {
         return title.replace("<b>","").replace("</b>","")
                 .replace("&quot;","\"").replace("&nbsp;"," ").replace("&lt;","<")
                 .replace("&gt;",">").replace("&amp;","&").replace("&#035;;","#")
-                .replace("&#039;","'");
+                .replace("&#039;","");
     }
 
     public String getLink() {
@@ -28,7 +28,7 @@ public class NewsData {
         return description.replace("<b>","").replace("</b>","")
                 .replace("&quot;","\"").replace("&nbsp;"," ").replace("&lt;","<")
                 .replace("&gt;",">").replace("&amp;","&").replace("&#035;;","#")
-                .replace("&#039;","'");
+                .replace("&#039;","");
     }
 
     public String getPubDate() {
