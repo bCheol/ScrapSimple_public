@@ -35,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
     myDBHelper myDBHelper;
     SQLiteDatabase sqLiteDatabase;
     static int screenCheck = 0 ;
+    NewsSearchScreen newsSearchScreen;
+    ScrapListScreen scrapListScreen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +51,8 @@ public class MainActivity extends AppCompatActivity {
         linearLayout = findViewById(R.id.linearLayout);
         LayoutInflater inflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         inflater.inflate(R.layout.screen_news,linearLayout,true);
-        NewsSearchScreen newsSearchScreen = new NewsSearchScreen();
+        newsSearchScreen = new NewsSearchScreen();
+        scrapListScreen = new ScrapListScreen();
         newsSearchScreen.start();
     }
 
@@ -57,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onRestart() {
         super.onRestart();
         if(screenCheck == 1){
-            ScrapListScreen scrapListScreen = new ScrapListScreen();
             scrapListScreen.start();
         }
     }
@@ -76,8 +78,11 @@ public class MainActivity extends AppCompatActivity {
             linearLayout.removeAllViews();
             LayoutInflater newsInflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             newsInflater.inflate(R.layout.screen_news,linearLayout,true);
-            NewsSearchScreen newsSearchScreen = new NewsSearchScreen();
-            newsSearchScreen.start();
+            if(newsSearchScreen.newsAdapter.getItemCount()!=0){
+                newsSearchScreen.reStart();
+            }else {
+                newsSearchScreen.start();
+            }
         }
         else{
             setTitle("스크랩 목록");
@@ -85,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
             linearLayout.removeAllViews();
             LayoutInflater scrapInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             scrapInflater.inflate(R.layout.screen_scrap, linearLayout, true);
-            ScrapListScreen scrapListScreen = new ScrapListScreen();
             scrapListScreen.start();
         }
         return super.onOptionsItemSelected(item);
@@ -110,6 +114,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     class NewsSearchScreen{
+        NewsAdapter newsAdapter;
+        Retrofit retrofit;
+        Service apiService;
+        public NewsSearchScreen() {
+            newsAdapter = new NewsAdapter();
+            retrofit = new Retrofit.Builder()
+                    .baseUrl("https://openapi.naver.com/v1/search/")
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build();
+            apiService = retrofit.create(Service.class);
+        }
+
+        void reStart(){
+            RecyclerView searchRecyclerView = linearLayout.findViewById(R.id.searchRecyclerView);
+            LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
+            searchRecyclerView.setLayoutManager(layoutManager);
+            searchRecyclerView.setAdapter(newsAdapter);
+            newsAdapter.setOnItemClickListener(new OnNewsItemClickListener() {
+                @Override
+                public void onItemClick(NewsAdapter.ViewHolder holder, View view, int position) {
+                    NewsData newsData = newsAdapter.getItem(position);
+                    Intent intent = new Intent(getApplicationContext(), NewsView.class);
+                    intent.putExtra("title", newsData.getTitle());
+                    intent.putExtra("link", newsData.getLink());
+                    intent.putExtra("description", newsData.getDescription());
+                    intent.putExtra("pubDate", newsData.getPubDate());
+                    startActivity(intent);
+                }
+            });
+        }
+
         void start(){
             EditText searchEditText = linearLayout.findViewById(R.id.searchEditText);
             searchEditText.setOnKeyListener(new View.OnKeyListener() {
@@ -120,95 +155,98 @@ public class MainActivity extends AppCompatActivity {
             });
             Spinner spinner = linearLayout.findViewById(R.id.spinner);
             Button searchButton = linearLayout.findViewById(R.id.searchButton);
-            RecyclerView searchRecyclerView = linearLayout.findViewById(R.id.searchRecyclerView);
 
             String[] spinnerItem = {"유사도순","날짜순"};
             ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_spinner_item, spinnerItem);
             spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             spinner.setAdapter(spinnerAdapter);
 
-            LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
-            searchRecyclerView.setLayoutManager(layoutManager);
-            NewsAdapter newsAdapter = new NewsAdapter();
-
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl("https://openapi.naver.com/v1/search/")
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
-            Service apiService = retrofit.create(Service.class);
-
             searchButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     if(searchEditText.getText().toString().equals("")){
                         newsAdapter.clear();
+                        RecyclerView searchRecyclerView = linearLayout.findViewById(R.id.searchRecyclerView);
+                        LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
+                        searchRecyclerView.setLayoutManager(layoutManager);
                         searchRecyclerView.setAdapter(newsAdapter);
                         Toast.makeText(getApplicationContext(), "검색어를 입력해주세요.", Toast.LENGTH_SHORT).show();
                     }else {
-                        String option ;
                         if(spinner.getSelectedItem().toString().equals("유사도순")){
-                            option = "sim";
+                            searchStart(searchEditText.getText().toString(),"sim");
                         }else{
-                            option = "date";
+                            searchStart(searchEditText.getText().toString(),"date");
                         }
-                        //clientId, clientSecret 비공개입니다.
-                        String clientId = "" ;
-                        String clientSecret = "" ;
-                        Call<GetData> call = apiService.getData(searchEditText.getText().toString(),20, option,clientId, clientSecret);
-                        newsAdapter.clear();
-                        call.enqueue(new Callback<GetData>() {
-                            @Override
-                            public void onResponse(@NonNull Call<GetData> call, @NonNull Response<GetData> response) {
-                                if (response.isSuccessful()) {
-                                    GetData getData = response.body();
-                                    if (getData != null) {
-                                        if (getData.getItem().size() != 0) {
-                                            for (int i = 0; i < getData.getItem().size(); i++) {
-                                                String title = getData.getItem().get(i).getTitle();
-                                                String link = getData.getItem().get(i).getLink();
-                                                String description = getData.getItem().get(i).getDescription();
-                                                String pubDate = getData.getItem().get(i).getPubDate();
-                                                newsAdapter.addItem(new NewsData(title, link, description, pubDate));
-                                            }
-                                            searchRecyclerView.setAdapter(newsAdapter);
-                                            newsAdapter.setOnItemClickListener(new OnNewsItemClickListener() {
-                                                @Override
-                                                public void onItemClick(NewsAdapter.ViewHolder holder, View view, int position) {
-                                                    NewsData newsData = newsAdapter.getItem(position);
-                                                    Intent intent = new Intent(getApplicationContext(), NewsView.class);
-                                                    intent.putExtra("title", newsData.getTitle());
-                                                    intent.putExtra("link", newsData.getLink());
-                                                    intent.putExtra("description", newsData.getDescription());
-                                                    intent.putExtra("pubDate", newsData.getPubDate());
-                                                    startActivity(intent);
-                                                }
-                                            });
-                                        }else{
-                                            Toast.makeText(getApplicationContext(),"찾는 뉴스가 없습니다.",Toast.LENGTH_SHORT).show();
-                                            newsAdapter.clear();
-                                            searchRecyclerView.setAdapter(newsAdapter);
-                                        }
-                                    }
-                                }
-                            }
-                            @Override
-                            public void onFailure(@NonNull Call<GetData> call, @NonNull Throwable t) {
-                                Toast.makeText(getApplicationContext(),"통신에 실패했습니다.",Toast.LENGTH_SHORT).show();
-                            }
-                        });
                     }
+                }
+            });
+        }
+
+        void searchStart(String searchText, String option){
+            RecyclerView searchRecyclerView = linearLayout.findViewById(R.id.searchRecyclerView);
+            LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
+            searchRecyclerView.setLayoutManager(layoutManager);
+
+            //clientId, clientSecret 비공개입니다.
+            String clientId = "" ;
+            String clientSecret = "" ;
+            Call<GetData> call = apiService.getData(searchText,20, option,clientId, clientSecret);
+            newsAdapter.clear();
+            call.enqueue(new Callback<GetData>() {
+                @Override
+                public void onResponse(@NonNull Call<GetData> call, @NonNull Response<GetData> response) {
+                    if (response.isSuccessful()) {
+                        GetData getData = response.body();
+                        if (getData != null) {
+                            if (getData.getItem().size() != 0) {
+                                for (int i = 0; i < getData.getItem().size(); i++) {
+                                    String title = getData.getItem().get(i).getTitle();
+                                    String link = getData.getItem().get(i).getLink();
+                                    String description = getData.getItem().get(i).getDescription();
+                                    String pubDate = getData.getItem().get(i).getPubDate();
+                                    newsAdapter.addItem(new NewsData(title, link, description, pubDate));
+                                }
+                                searchRecyclerView.setAdapter(newsAdapter);
+                                newsAdapter.setOnItemClickListener(new OnNewsItemClickListener() {
+                                    @Override
+                                    public void onItemClick(NewsAdapter.ViewHolder holder, View view, int position) {
+                                        NewsData newsData = newsAdapter.getItem(position);
+                                        Intent intent = new Intent(getApplicationContext(), NewsView.class);
+                                        intent.putExtra("title", newsData.getTitle());
+                                        intent.putExtra("link", newsData.getLink());
+                                        intent.putExtra("description", newsData.getDescription());
+                                        intent.putExtra("pubDate", newsData.getPubDate());
+                                        startActivity(intent);
+                                    }
+                                });
+                            }else{
+                                Toast.makeText(getApplicationContext(),"찾는 뉴스가 없습니다.",Toast.LENGTH_SHORT).show();
+                                newsAdapter.clear();
+                                searchRecyclerView.setAdapter(newsAdapter);
+                            }
+                        }
+                    }
+                }
+                @Override
+                public void onFailure(@NonNull Call<GetData> call, @NonNull Throwable t) {
+                    Toast.makeText(getApplicationContext(),"통신에 실패했습니다.",Toast.LENGTH_SHORT).show();
                 }
             });
         }
     }
 
     class ScrapListScreen{
+        ScrapAdapter scrapAdapter;
+        public ScrapListScreen() {
+            scrapAdapter = new ScrapAdapter();
+        }
+
         void start(){
             RecyclerView scrapRecyclerView = linearLayout.findViewById(R.id.scrapRecyclerView);
             LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
             scrapRecyclerView.setLayoutManager(layoutManager);
-            ScrapAdapter scrapAdapter = new ScrapAdapter();
 
+            scrapAdapter.clear();
             sqLiteDatabase = myDBHelper.getReadableDatabase();
             Cursor cursor = sqLiteDatabase.rawQuery("Select * from scrapTable Order by scrapDate DESC",null);
             int count = cursor.getCount();

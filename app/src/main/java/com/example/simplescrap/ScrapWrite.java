@@ -80,6 +80,7 @@ public class ScrapWrite extends AppCompatActivity {
                     sqLiteDatabase.execSQL(sql);
                     sqLiteDatabase.close();
                     finish();
+                    Toast.makeText(getApplicationContext(), "스크랩을 저장했습니다.", Toast.LENGTH_SHORT).show();
                 }
             }
         });

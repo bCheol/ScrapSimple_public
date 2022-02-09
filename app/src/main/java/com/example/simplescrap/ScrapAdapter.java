@@ -42,6 +42,10 @@ public class ScrapAdapter extends RecyclerView.Adapter<ScrapAdapter.ViewHolder> 
         return items.get(position);
     }
 
+    public void clear(){
+        items.clear();
+    }
+
     public void setOnItemClickListener(OnScrapItemClickListener listener){
         this.listener = listener;
     }

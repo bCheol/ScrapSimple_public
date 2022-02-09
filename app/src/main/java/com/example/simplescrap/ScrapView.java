@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -70,6 +71,7 @@ public class ScrapView extends AppCompatActivity {
                 sqLiteDatabase.execSQL(sql);
                 sqLiteDatabase.close();
                 finish();
+                Toast.makeText(getApplicationContext(),"스크랩을 삭제했습니다.", Toast.LENGTH_SHORT).show();
             }
         });
     }
