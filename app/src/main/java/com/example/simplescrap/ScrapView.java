@@ -1,6 +1,5 @@
 package com.example.simplescrap;
 
-import android.app.ActionBar;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;

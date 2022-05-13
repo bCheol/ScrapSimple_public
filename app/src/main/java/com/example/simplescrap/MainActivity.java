@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
             onCreate(db);
         }
     }
-
+    //뉴스 검색 화면 관련
     class NewsSearchScreen{
         NewsAdapter newsAdapter;
         Retrofit retrofit;
@@ -120,13 +120,21 @@ public class MainActivity extends AppCompatActivity {
         public NewsSearchScreen() {
             newsAdapter = new NewsAdapter();
             retrofit = new Retrofit.Builder()
-                    .baseUrl("https://openapi.naver.com/v1/search/")
+                    .baseUrl("https://openapi.naver.com")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
             apiService = retrofit.create(Service.class);
         }
-
+        //뉴스 검색 화면 (데이터가 있을 때)
         void reStart(){
+            EditText searchEditText = linearLayout.findViewById(R.id.searchEditText);
+            searchEditText.setOnKeyListener(new View.OnKeyListener() {
+                @Override
+                public boolean onKey(View v, int keyCode, KeyEvent event) {
+                    return keyCode == 66;
+                }
+            });
+
             RecyclerView searchRecyclerView = linearLayout.findViewById(R.id.searchRecyclerView);
             LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
             searchRecyclerView.setLayoutManager(layoutManager);
@@ -143,8 +151,35 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                 }
             });
-        }
 
+            Spinner spinner = linearLayout.findViewById(R.id.spinner);
+            Button searchButton = linearLayout.findViewById(R.id.searchButton);
+
+            String[] spinnerItem = {"유사도순","날짜순"};
+            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_spinner_item, spinnerItem);
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinner.setAdapter(spinnerAdapter);
+            searchButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if(searchEditText.getText().toString().equals("")){
+                        newsAdapter.clear();
+                        RecyclerView searchRecyclerView = linearLayout.findViewById(R.id.searchRecyclerView);
+                        LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
+                        searchRecyclerView.setLayoutManager(layoutManager);
+                        searchRecyclerView.setAdapter(newsAdapter);
+                        Toast.makeText(getApplicationContext(), "검색어를 입력해주세요.", Toast.LENGTH_SHORT).show();
+                    }else {
+                        if(spinner.getSelectedItem().toString().equals("유사도순")){
+                            searchStart(searchEditText.getText().toString(),"sim");
+                        }else{
+                            searchStart(searchEditText.getText().toString(),"date");
+                        }
+                    }
+                }
+            });
+        }
+        //뉴스 검색 화면 (데이터가 없을 때)
         void start(){
             EditText searchEditText = linearLayout.findViewById(R.id.searchEditText);
             searchEditText.setOnKeyListener(new View.OnKeyListener() {
@@ -153,6 +188,7 @@ public class MainActivity extends AppCompatActivity {
                     return keyCode == 66;
                 }
             });
+
             Spinner spinner = linearLayout.findViewById(R.id.spinner);
             Button searchButton = linearLayout.findViewById(R.id.searchButton);
 
@@ -181,13 +217,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-
+        //뉴스 검색 함수
         void searchStart(String searchText, String option){
             RecyclerView searchRecyclerView = linearLayout.findViewById(R.id.searchRecyclerView);
             LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);
             searchRecyclerView.setLayoutManager(layoutManager);
 
-            //clientId, clientSecret 비공개입니다.
+            //clientId, clientSecret 비공개 (네이버에서 발급)
             String clientId = "" ;
             String clientSecret = "" ;
             Call<GetData> call = apiService.getData(searchText,20, option,clientId, clientSecret);
@@ -234,13 +270,13 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     }
-
+    //스크랩 목록 화면 관련
     class ScrapListScreen{
         ScrapAdapter scrapAdapter;
         public ScrapListScreen() {
             scrapAdapter = new ScrapAdapter();
         }
-
+        //스크랩 목록 보기
         void start(){
             RecyclerView scrapRecyclerView = linearLayout.findViewById(R.id.scrapRecyclerView);
             LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL, false);

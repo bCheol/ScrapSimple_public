@@ -6,7 +6,7 @@ import retrofit2.http.Header;
 import retrofit2.http.Query;
 
 public interface Service {
-    @GET("news.json")
+    @GET("/v1/search/news.json")
     Call<GetData> getData(@Query("query") String query,
                           @Query("display") int count,
                           @Query("sort") String sort,
